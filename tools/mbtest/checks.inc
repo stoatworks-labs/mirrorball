@@ -20,7 +20,12 @@ bool startRig( Rig& rig, int w, int h, const Perturb& perturb, const Floats* pic
 // where the facets are (the layout, Ball.cpp's definition), where a plane's
 // pixels are, and closed forms built from those.
 //---------------------------------------------------------------------------
-constexpr double kA = lamp::kPupilDiameter;
+//SPEC-mirrorball.md's numbers, written again here rather than read from
+//the code, so a slip in the code's copy fails a check instead of being
+//shared by the plugin and its reference.
+constexpr double kA               = 0.114;//the PAR36's diameter, the exit pupil (GE 4515)
+constexpr double kSpecReflectance = 0.86; //the facet's glass mirror
+constexpr double kSpecLux = 4120.0, kSpecMetres = 2.0, kSpecBeam = 6.0;//Chauvet LED Pinspot 2
 
 double deg( double radians )
 {
@@ -41,6 +46,21 @@ double rampEdgeRef( double r, double w )
 	if( 3.0 * r * r >= 4.0 * w * w )
 		return std::sqrt( r * r - w * w / 3.0 );
 	return std::cbrt( 6.0 * w * r * r ) - w;
+}
+
+/// The lamp as the spec has it: the frame (axis, right, up) from the code's
+/// convention, the beam's half-angle as the control was set, and the
+/// photometry from the Chauvet anchor: the beam's flux held as the lens
+/// changes, I0 = Phi / ( 2 pi ( 1 - cos alpha ) ), L_e = I0 / pi ( A / 2 )^2.
+lamp::Lamp specLamp( const Vec3& position, double beamDegrees )
+{
+	lamp::Lamp l      = lamp::At( position, beamDegrees );
+	l.alpha           = 0.5 * beamDegrees * kPi / 180.0;
+	l.tanAlpha        = std::tan( l.alpha );
+	const double flux = kSpecLux * kSpecMetres * kSpecMetres * 2.0 * kPi * ( 1.0 - std::cos( 0.5 * kSpecBeam * kPi / 180.0 ) );
+	l.intensity       = flux / ( 2.0 * kPi * ( 1.0 - std::cos( l.alpha ) ) );
+	l.luminance       = l.intensity / ( kPi * 0.25 * kA * kA );
+	return l;
 }
 
 /// The layout the plugin builds for these controls (the same float round
@@ -482,7 +502,7 @@ int runArea( const Perturb& perturb )
 			facetNearest( layout, toLamp, k, j );
 			const Vec3 n           = ball::NormalOf( layout.rings[ static_cast< size_t >( k ) ], j, 0.0 );
 			const Vec3 X           = layout.radius * n;
-			const lamp::Lamp l     = lamp::At( lampPos, BeamFromParam( ParamFromBeam( beam ) ) );
+			const lamp::Lamp l     = specLamp( lampPos, beam );
 			const Vec3 axis        = reflect( l.axis, n );
 			double worstRel = 0.0, worstRatio = 0.0, worstOverBound = 0.0;
 			int measured = 0;
@@ -532,7 +552,7 @@ int runArea( const Perturb& perturb )
 			facetNearest( layout, toLamp, k, j );
 			const Vec3 n       = ball::NormalOf( layout.rings[ static_cast< size_t >( k ) ], j, 0.0 );
 			const Vec3 X       = layout.radius * n;
-			const lamp::Lamp l = lamp::At( lampPos, BeamFromParam( ParamFromBeam( beam ) ) );
+			const lamp::Lamp l = specLamp( lampPos, beam );
 			const Vec3 axis    = reflect( normalise( X - lampPos ), n );
 			const std::vector< Vec3 > rays = pupilRim( l, X, n );
 			double worstRel = 0.0, worstOverBound = 0.0;
@@ -576,15 +596,15 @@ int runArea( const Perturb& perturb )
 //===========================================================================
 /// rho L_e s^2 times the integral of max( 0, -w.n ) over the directions
 /// that reach the facet through the pupil and the gate: by quadrature over
-/// the pupil (far field; every ray inside the gate) or over the gate's cone
-/// (near field; every ray inside the pupil). `ok` is false when the
-/// quadrature's assumption does not hold, or holds closer than `margin` (gobo
-/// units far, metres on the pupil's plane near) to the edge it ignores: the
-/// other edge's ramp must not reach the spot either.
-double fluxIntercepted( const lamp::Lamp& l, const Vec3& X, const Vec3& n, double s, bool near, double margin, bool& ok )
+/// the pupil (far field; assumes every ray inside the gate) or over the
+/// gate's cone (near field; assumes every ray inside the pupil). `extent` is
+/// how close the assumption came to failing: the largest |g| a pupil ray
+/// had (far), or the largest distance from the pupil's centre a gate ray
+/// crossed its plane at (near, metres).
+double fluxIntercepted( const lamp::Lamp& l, const Vec3& X, const Vec3& n, double s, bool near, double& extent )
 {
-	ok             = true;
-	const int nr   = 400, nt = 400;
+	extent          = 0.0;
+	const int nr    = 400, nt = 400;
 	double integral = 0.0;
 	if( !near )
 	{
@@ -598,98 +618,109 @@ double fluxIntercepted( const lamp::Lamp& l, const Vec3& X, const Vec3& n, doubl
 				const double dd = length( d );
 				const Vec3 w    = ( 1.0 / dd ) * d;
 				const double cq = dot( w, l.axis );
-				const double gx = dot( w, l.right ) / ( cq * l.tanAlpha ), gy = dot( w, l.up ) / ( cq * l.tanAlpha );
-				if( std::hypot( gx, gy ) > 1.0 - margin )
-					ok = false;
+				extent          = std::max( extent, std::hypot( dot( w, l.right ), dot( w, l.up ) ) / ( cq * l.tanAlpha ) );
 				const double dA = rr * ( a / nr ) * ( 2.0 * kPi / nt );
 				integral += std::max( 0.0, -dot( w, n ) ) * cq / ( dd * dd ) * dA;
 			}
 	}
 	else
 	{
-		const Vec3 e1 = l.right, e2 = l.up;
 		for( int ir = 0; ir < nr; ++ir )
 			for( int it = 0; it < nt; ++it )
 			{
 				const double th = l.alpha * ( ir + 0.5 ) / nr, ph = 2.0 * kPi * ( it + 0.5 ) / nt;
-				const Vec3 w    = normalise( std::cos( th ) * l.axis + std::sin( th ) * ( std::cos( ph ) * e1 + std::sin( ph ) * e2 ) );
+				const Vec3 w    = normalise( std::cos( th ) * l.axis + std::sin( th ) * ( std::cos( ph ) * l.right + std::sin( ph ) * l.up ) );
 				const double t  = dot( X - l.position, l.axis ) / dot( w, l.axis );
-				const Vec3 q    = X - t * w;
-				if( length( q - l.position ) > 0.5 * kA - margin )
-					ok = false;
+				extent          = std::max( extent, length( X - t * w - l.position ) );
 				integral += std::max( 0.0, -dot( w, n ) ) * std::sin( th ) * ( l.alpha / nr ) * ( 2.0 * kPi / nt );
 			}
 	}
-	return ball::kReflectance * l.luminance * s * s * integral;
+	return kSpecReflectance * l.luminance * s * s * integral;
 }
 
 int runFlux( const Perturb& perturb )
 {
 	std::printf( "\n=== flux: one facet's light summed over a plane is what it intercepted from the pupil and the gate, at any distance and slant\n" );
-	const double diameter = 0.5, facet = 0.01;
-	const ball::Layout layout = layoutFor( diameter, facet );
-	const Vec3 toLamp         = normalise( Vec3 { 0.3, 0.4, 1.0 } );
+	const double diameter = 0.5;
+	const Vec3 toLamp     = normalise( Vec3 { 0.3, 0.4, 1.0 } );
 	struct Case
 	{
 		bool near;
-		double lampDistance, beam, gamma;
+		double lampDistance, beam, gamma, facet;
 	};
-	const Case cases[] = { { false, 5.0, 8.0, 5.0 }, { false, 5.0, 8.0, 40.0 }, { true, 0.7, 5.0, 0.0 } };
+	//The last: a 20 mm facet 0.6 m from the plane, where its ramp is wider
+	//than the pupil and never reaches 1 (rampEdge's second branch).
+	const Case cases[] = { { false, 5.0, 8.0, 5.0, 0.01 }, { false, 5.0, 8.0, 40.0, 0.01 }, { true, 0.7, 5.0, 0.0, 0.01 }, { false, 5.0, 8.0, 5.0, 0.02 } };
 	for( const Raster& raster : kRasters )
 	{
 		for( const Case& c : cases )
 		{
-			const Vec3 lampPos = c.lampDistance * toLamp;
+			const ball::Layout layout = layoutFor( diameter, c.facet );
+			const Vec3 lampPos        = c.lampDistance * toLamp;
 			int k = 0, j = 0;
 			facetNearest( layout, tilted( toLamp, rad( c.gamma ) ), k, j );
 			const Vec3 n       = ball::NormalOf( layout.rings[ static_cast< size_t >( k ) ], j, 0.0 );
 			const Vec3 X       = layout.radius * n;
-			const lamp::Lamp l = lamp::At( lampPos, BeamFromParam( ParamFromBeam( c.beam ) ) );
+			const lamp::Lamp l = specLamp( lampPos, c.beam );
 			const Vec3 axis    = c.near ? reflect( l.axis, n ) : reflect( normalise( X - lampPos ), n );
-			bool quadOk        = true;
-			//The ramp the ignored edge would have at the nearest plane (2 m),
-			//twice over, the pixel taken as 1 cm.
-			const double margin = c.near ? 2.0 * ( 0.5 * layout.facet * ( 2.0 + c.lampDistance ) / 2.0 + 0.5 * 0.01 * c.lampDistance / 2.0 )
-			                             : 2.0 * 0.5 * ( layout.facet + 0.01 ) / ( 2.0 * l.tanAlpha );
-			const double ref    = fluxIntercepted( l, X, n, layout.facet, c.near, margin, quadOk );
+			const double tStar = dot( X - lampPos, l.axis );
+			double extent      = 0.0;
+			const double ref   = fluxIntercepted( l, X, n, layout.facet, c.near, extent );
 			const std::vector< Vec3 > rays = c.near ? gateCone( axis, l.alpha ) : pupilRim( l, X, n );
-			double worstOverBound = 0.0, worstRel = 0.0;
-			int measured = 0;
+			double worstOverBound = 0.0;
+			int measured = 0, places = 0;
+			bool assumed = true;
 			std::string detail;
-			for( const auto& place : { std::array< double, 2 > { 2.0, 0.0 }, std::array< double, 2 > { 4.0, 0.0 }, std::array< double, 2 > { 3.0, 40.0 } } )
+			const std::vector< std::array< double, 2 > > planes = { { c.near ? 1.0 : 0.6, 0.0 }, { 2.0, 0.0 }, { 4.0, 0.0 }, { 3.0, 40.0 } };
+			for( const auto& place : planes )
 			{
+				++places;
+				const double D = place[ 0 ];
+				//The ramps at this distance (the pixel added once framed): the
+				//pupil's on its plane (m), the gate's in gobo units.
+				const double wp0 = 0.5 * layout.facet * ( D + tStar ) / D, wg0 = 0.5 * layout.facet / ( D * l.tanAlpha );
+				const double grow = c.near ? 1.0 + 2.0 * wg0 : 1.0 + 2.0 * wp0 / ( 0.5 * kA );
 				Outline o;
-				TestRig t = framePlane( opticsRig( lampPos, k, j, perturb.kMax ), X, axis, place[ 0 ], rad( place[ 1 ] ), rays, 1.6, raster.w, raster.h, o );
+				TestRig t = framePlane( opticsRig( lampPos, k, j, perturb.kMax ), X, axis, D, rad( place[ 1 ] ), rays, 1.3 * grow, raster.w, raster.h, o );
 				Rig rig;
 				if( !startRig( rig, raster.w, raster.h, perturb ) )
 					return 1;
-				opticsControls( rig, c.beam, diameter, facet );
+				opticsControls( rig, c.beam, diameter, c.facet );
 				const Floats px    = shootPlane( rig, t, t.centre, t.normal, t.halfHeight, perturb.hooks | shaders::kHookRaw | shaders::kHookSpotsOnly );
 				const PlaneFrame f = frameOf( t, raster.w, raster.h );
 				const Blob b       = weighted( px, raster.w, raster.h );
 				const double pix   = f.pixel();
 				const double got   = b.sum * pix * pix;
-				//The bound: the ramp's edge is placed to hold the disc's area
-				//(rampEdge), so what is left is the midpoint rule at the ramp's
-				//two kinks, at most perimeter / ( 8 w_px ) pixels^2, and 1e-4
-				//for float32 summed over the plane.
-				const double D     = place[ 0 ];
-				const double tStar = dot( X - lampPos, l.axis );
-				const double rampPx = c.near ? 0.5 * ( layout.facet + pix ) / pix
-				                             : ( 0.5 * layout.facet * ( D + tStar ) / D + 0.5 * pix * tStar / D ) * D / tStar / pix;
-				const double areaPx = o.area / ( pix * pix ), perimPx = o.perimeter / pix;
-				const double bound  = perimPx / ( 8.0 * std::max( rampPx, 0.5 ) ) / areaPx + 1e-4;
+				const double wp    = wp0 + 0.5 * pix * tStar / D, wg = 0.5 * ( layout.facet + pix ) / ( D * l.tanAlpha );
+				//The quadrature ignored one edge: its ramp must not reach the
+				//spot either.
+				if( c.near ? extent + 2.0 * wp > 0.5 * kA : extent + 2.0 * wg > 1.0 )
+					assumed = false;
+				//The bound. The ramp's edge is placed to hold the disc's area
+				//(rampEdge), but the light a ray carries is not uniform over the
+				//pupil: cos^3 / L^2 and the facet's cosine curve, and a ramp of
+				//half-width w carries the disc's second moment up by w^2 / 3,
+				//which moves the flux by -(laplacian f / f) w^2 / 6, about
+				//-(4 / 3) (w / L)^2 on the pupil's plane (in gobo units the
+				//same with L = 1 / tan alpha): 2 (w / L)^2 is allowed. Then the
+				//midpoint rule at the ramp's kinks, at most (perimeter / 8 w_px)
+				//pixels^2, the outer kink's perimeter grown by the ramp, and
+				//1e-4 for float32 summed over the plane.
+				const double rampPx = c.near ? wg * D * l.tanAlpha / pix : wp * D / tStar / pix;
+				const double areaPx = o.area / ( pix * pix ), perimPx = o.perimeter / pix * ( c.near ? 1.0 + wg : 1.0 + wp / ( 0.5 * kA ) );
+				const double curve  = c.near ? 2.0 * ( wg * l.tanAlpha ) * ( wg * l.tanAlpha ) : 2.0 * ( wp / tStar ) * ( wp / tStar );
+				const double bound  = curve + perimPx / ( 8.0 * std::max( rampPx, 0.5 ) ) / areaPx + 1e-4;
 				const double rel    = got / ref - 1.0;
 				if( b.sum > 0.0 && !b.edge )
 					++measured;
-				worstRel       = worse( worstRel, std::fabs( rel ) );
 				worstOverBound = worse( worstOverBound, std::fabs( rel ) / bound );
-				detail += fmt( " %g m/%g deg %+.2e (bound %.1e);", place[ 0 ], place[ 1 ], rel, bound );
+				detail += fmt( " %g m/%g deg %+.2e (bound %.1e);", D, place[ 1 ], rel, bound );
 			}
 			const double cosF = dot( -1.0 * ( c.near ? l.axis : normalise( X - lampPos ) ), n );
-			Check( measured == 3 && quadOk && worstOverBound <= 1.0,
-			       fmt( "%dx%d %s field, beam %g deg, facet at %.1f deg incidence: intercepted %.4e lm;%s worst at %.2f of its bound", raster.w, raster.h,
-			            c.near ? "near" : "far", c.beam, deg( std::acos( std::min( 1.0, cosF ) ) ), ref, detail.c_str(), worstOverBound ) );
+			Check( measured == places && assumed && worstOverBound <= 1.0,
+			       fmt( "%dx%d %s field, beam %g deg, %g mm facet at %.1f deg incidence: intercepted %.4e lm;%s worst at %.2f of its bound%s", raster.w,
+			            raster.h, c.near ? "near" : "far", c.beam, 1000.0 * c.facet, deg( std::acos( std::min( 1.0, cosF ) ) ), ref, detail.c_str(),
+			            worstOverBound, assumed ? "" : " -- THE QUADRATURE'S ASSUMPTION FAILS" ) );
 		}
 	}
 	return Verdict();
@@ -833,7 +864,7 @@ int runCircles( const Perturb& perturb )
 			//and pulls the centroid off the centre ray). The facet's own size
 			//moves it by `smear`, which the shader's ramp models only to
 			//second order: that is allowed for.
-			const lamp::Lamp lp     = lamp::At( lampPos, BeamFromParam( ParamFromBeam( beam ) ) );
+			const lamp::Lamp lp     = specLamp( lampPos, beam );
 			const Vec3 ceilC        = { 0.0, ceiling, 0.0 }, ceilN = { 0.0, -1.0, 0.0 };
 			const Vec3 cLight       = spotCentroid( lp, ring, 0, layout.radius, layout.facet, 1, ceilC, ceilN );
 			const Vec3 cFacet       = spotCentroid( lp, ring, 0, layout.radius, layout.facet, 6, ceilC, ceilN );
@@ -1024,7 +1055,7 @@ int runWindow( const Perturb& perturb )
 		//Far field: two facets, one on the axis and one off it.
 		{
 			const Vec3 lampPos = 5.0 * toLamp;
-			const lamp::Lamp l = lamp::At( lampPos, BeamFromParam( ParamFromBeam( beam ) ) );
+			const lamp::Lamp l = specLamp( lampPos, beam );
 			double worstOverBound = 0.0;
 			int measured          = 0;
 			std::string detail;
@@ -1101,7 +1132,7 @@ int runWindow( const Perturb& perturb )
 		//projection) not.
 		{
 			const Vec3 lampPos = 0.7 * toLamp;
-			const lamp::Lamp l = lamp::At( lampPos, BeamFromParam( ParamFromBeam( beam ) ) );
+			const lamp::Lamp l = specLamp( lampPos, beam );
 			int k = 0, j = 0;
 			facetNearest( layout, toLamp, k, j );
 			const Vec3 n    = ball::NormalOf( layout.rings[ static_cast< size_t >( k ) ], j, 0.0 );
@@ -1133,7 +1164,7 @@ int runWindow( const Perturb& perturb )
 			//The spill: no facets, the beam widened past the ball onto a plane
 			//behind it.
 			const Vec3 farLamp  = 4.0 * toLamp;
-			const lamp::Lamp lf = lamp::At( farLamp, BeamFromParam( ParamFromBeam( 12.0 ) ) );
+			const lamp::Lamp lf = specLamp( farLamp, 12.0 );
 			TestRig ts          = opticsRig( farLamp, -2, -2, perturb.kMax );
 			Rig spillRig( true );
 			if( !overRig( spillRig ) )
@@ -1369,8 +1400,13 @@ int runRate( const Perturb& perturb )
 {
 	std::printf( "\n=== rate: Free at 1 rpm is in the same place after 4 s at 24, 30, 60 and 240 fps, and so is a facet's spot\n" );
 	const Raster raster = kRasters.back();
-	const double rpm    = SpeedFromParam( ParamFromSpeed( 1.0 ) );
-	double worst        = 0.0;
+	//SPEC-mirrorball.md: Speed is +-5 rpm, linear, so 1 rpm is the host
+	//value 0.6, written here rather than through ParamFromSpeed (a range
+	//slipped in Controls.cpp would round-trip unnoticed); a float, so off by
+	//at most half an ulp, at 10 rpm a unit.
+	const float param   = 0.6f;
+	const double tolRpm = 10.0 * std::ldexp( 1.0, std::ilogb( param ) - 24 );
+	double lo = 1e30, hi = -1e30;
 	std::string detail;
 	Vec3 spot[ 2 ];
 	int shot = 0;
@@ -1381,14 +1417,14 @@ int runRate( const Perturb& perturb )
 		if( !startRig( rig, raster.w, raster.h, perturb ) )
 			return 1;
 		rig.Set( PT_MOTOR, static_cast< float >( Motor::Free ) );
-		rig.Set( PT_SPEED, ParamFromSpeed( 1.0 ) );
+		rig.Set( PT_SPEED, param );
 		const int frames = static_cast< int >( std::lround( 4.0 * fps ) ) + 1;
 		const bool picture = fps == 30.0 || fps == 240.0;
 		if( picture )
 		{
 			//One facet on a plane square to its reflection, the motor running.
 			opticsControls( rig, 8.0, 0.5, 0.01 );
-			rig.Set( PT_SPEED, ParamFromSpeed( 1.0 ) );
+			rig.Set( PT_SPEED, param );
 			const ball::Layout layout = layoutFor( 0.5, 0.01 );
 			const Vec3 lampPos        = { 0.0, -5.0, 0.0 };
 			const int k               = ball::NearestRing( layout, rad( -16.0 ) );
@@ -1405,8 +1441,10 @@ int runRate( const Perturb& perturb )
 		if( !rig.Render( frames ) )
 			return 1;
 		const double psi = rig.plugin.MotorForTest().Unwrapped();
-		const double off = std::fabs( psi - rpm / 60.0 * 4.0 );
-		worst            = worse( worst, off );
+		lo               = std::min( lo, psi );
+		hi               = std::max( hi, psi );
+		if( std::isnan( psi ) )
+			lo = std::numeric_limits< double >::quiet_NaN();
 		detail += fmt( " %g fps %.12f;", fps, psi );
 		if( picture )
 		{
@@ -1421,9 +1459,12 @@ int runRate( const Perturb& perturb )
 		}
 	}
 	const double apart = length( spot[ 1 ] - spot[ 0 ] );
-	Check( worst <= 1e-9 && apart <= 1e-3 * 3.2 / raster.h,
-	       fmt( "psi after 4 s (expected %.12f turns):%s worst off by %.1e turns (1e-9); the spot at 30 and 240 fps %.2e m apart (a thousandth of a pixel: %.1e)",
-	            rpm / 60.0 * 4.0, detail.c_str(), worst, apart, 1e-3 * 3.2 / raster.h ) );
+	const double off   = std::max( std::fabs( lo - 4.0 / 60.0 ), std::fabs( hi - 4.0 / 60.0 ) );
+	const double tolPsi = 4.0 / 60.0 * tolRpm;
+	Check( hi - lo <= 1e-9 && off <= tolPsi && apart <= 1e-3 * 3.2 / raster.h,
+	       fmt( "psi after 4 s:%s the rates agree to %.1e turns (1e-9), and with 1 rpm's 0.0666666667 to %.1e (the float control's half ulp: %.1e); the spot at "
+	            "30 and 240 fps %.2e m apart (a thousandth of a pixel: %.1e)",
+	            detail.c_str(), hi - lo, off, tolPsi, apart, 1e-3 * 3.2 / raster.h ) );
 	return Verdict();
 }
 
@@ -1604,16 +1645,21 @@ int runCap( const Perturb& perturb )
 //===========================================================================
 // --alpha: the Over's output alpha, decided, on a clip with alpha.
 //===========================================================================
+/// The harness's card with alpha 0, 0.5 and 1 in diagonal stripes of
+/// squares an eighth of the frame high, so every spot's window of the gobo
+/// (about a seventh of it) and every part of the wall sees all three; `under`
+/// painted under alpha 0.
 Floats alphaCard( int w, int h, float under )
 {
 	Floats card = buildCard( w, h );
+	const int side = std::max( h / 8, 1 );
 	for( int y = 0; y < h; ++y )
 		for( int x = 0; x < w; ++x )
 		{
-			float* o = &card[ ( static_cast< size_t >( y ) * w + x ) * 4 ];
-			const int third = x * 3 / w;
-			o[ 3 ]          = third == 0 ? 0.0f : third == 1 ? 0.5f : 1.0f;
-			if( third == 0 )
+			float* o        = &card[ ( static_cast< size_t >( y ) * w + x ) * 4 ];
+			const int level = ( x / side + y / side ) % 3;
+			o[ 3 ]          = level == 0 ? 0.0f : level == 1 ? 0.5f : 1.0f;
+			if( level == 0 )
 				o[ 0 ] = o[ 1 ] = o[ 2 ] = under;
 		}
 	return card;

@@ -543,7 +543,7 @@ bool applySetting( MirrorballPlugin& plugin, const std::string& assignment, std:
 					}
 			char* end       = nullptr;
 			const float got = std::strtof( value.c_str(), &end );
-			if( value.empty() || end == value.c_str() || *end != '\0' )
+			if( value.empty() || end == value.c_str() || *end != '\0' || !std::isfinite( got ) )
 			{
 				error = "'" + value + "' is not a number" + ( parameter.type == FF_TYPE_OPTION ? " or an option of " + name : "" );
 				return false;
@@ -618,7 +618,7 @@ bool bindScript( MirrorballPlugin& plugin, std::istream& in, const std::string& 
 		{
 			char* end = nullptr;
 			v         = std::strtof( value.c_str(), &end );
-			if( value.empty() || end == value.c_str() || *end != '\0' )
+			if( value.empty() || end == value.c_str() || *end != '\0' || !std::isfinite( v ) )
 			{
 				error = path + ":" + std::to_string( lineNumber ) + ": '" + value + "' is not a number";
 				return false;

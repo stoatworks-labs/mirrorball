@@ -137,6 +137,28 @@ out vec4 fragColour;
 const vec2 kDots[ 6 ] = vec2[ 6 ]( vec2( 0.58, 0.0 ), vec2( 0.29, 0.50229 ), vec2( -0.29, 0.50229 ),
                                    vec2( -0.58, 0.0 ), vec2( -0.29, -0.50229 ), vec2( 0.29, -0.50229 ) );
 
+//The clip at uv (0..1 of its picture), linear and premultiplied, filtered
+//by hand: the host's bilinear filter would blend a transparent texel's
+//colour into its neighbours before the alpha could hide it.
+vec3 clipAt( vec2 uv )
+{
+	ivec2 size = textureSize( InputTexture, 0 );
+	ivec2 last = max( ivec2( vec2( size ) * MaxUV + 0.5 ) - 1, ivec2( 0 ) );
+	vec2 p     = uv * MaxUV * vec2( size ) - 0.5;
+	ivec2 i0   = ivec2( floor( p ) );
+	vec2 f     = p - vec2( i0 );
+	vec3 sum   = vec3( 0.0 );
+	for( int k = 0; k < 4; ++k )
+	{
+		ivec2 o  = ivec2( k & 1, k >> 1 );
+		vec4 t   = texelFetch( InputTexture, clamp( i0 + o, ivec2( 0 ), last ), 0 );
+		float wx = o.x == 1 ? f.x : 1.0 - f.x;
+		float wy = o.y == 1 ? f.y : 1.0 - f.y;
+		sum += ( wx * wy * clamp( t.a, 0.0, 1.0 ) ) * toLinear( clamp( t.rgb, 0.0, 1.0 ) );
+	}
+	return sum;
+}
+
 vec3 pattern( vec2 g )
 {
 	//No gate here: the round gate is the final pass's analytic edge (its
@@ -149,8 +171,7 @@ vec3 pattern( vec2 g )
 		//inscribed disc), its edge rows held beyond the frame, premultiplied:
 		//transparent is no light.
 		vec2 crop = ClipAspect >= 1.0 ? vec2( 0.5 / ClipAspect, 0.5 ) : vec2( 0.5, 0.5 * ClipAspect );
-		vec4 clip = texture( InputTexture, clamp( vec2( 0.5 ) + g * crop, 0.0, 1.0 ) * MaxUV );
-		return toLinear( clamp( clip.rgb, 0.0, 1.0 ) ) * clamp( clip.a, 0.0, 1.0 );
+		return clipAt( clamp( vec2( 0.5 ) + g * crop, 0.0, 1.0 ) );
 	}
 	if( GoboKind == 1 )
 	{
