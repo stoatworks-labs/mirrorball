@@ -10,7 +10,7 @@ renders.
 Each control is swept where it can act. Every render is 180 frames (3 s at
 60 fps) at 120 BPM, 320x180 (CI's raster), on the defaults: a 0.5 m ball
 turning at 1 rpm, the pin spot 5 m off at 75 degrees, the room seen from the
-back. Seed acts only on missing facets (Missing 0.3 set); Step On, Step
+back. Seed acts only on missing facets (Missing 0.6 set); Step On, Step
 Angle and Glide only in Sync (Glide with Step On Bar, so the step is mid-glide
 at 3 s). An option is set here by its name. A control whose ends differ by
 less than `--floor` (mean 8-bit difference per channel) is barely alive:

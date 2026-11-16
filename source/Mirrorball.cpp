@@ -69,7 +69,7 @@ MirrorballPlugin::MirrorballPlugin( bool effect ) :
 		idToHost[ hostOrder[ i ] ] = static_cast< int >( i );
 
 	for( unsigned int id = 0; id < PT_ABOUT_TEXT; ++id )
-		params[ id ] = InfoOf( id ).defaultValue;
+		params[ id ] = DefaultOf( id, isEffect );
 
 	for( unsigned int host = 0; host < hostOrder.size(); ++host )
 	{

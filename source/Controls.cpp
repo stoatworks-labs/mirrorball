@@ -69,8 +69,8 @@ ControlInfo integer( unsigned int id, const char* name, const char* group, float
 // The defaults: a 50 cm ball of 10 mm glass, turning at 1 rpm (the
 // MD-2010's one speed), a 5 degree pin spot 5 m away just filling it, low
 // on the right, in a 12 m hall. AGENTS.md ("Decisions") says how each was
-// chosen; the Over's Room Light and Clip As were set on Resolume's demo
-// clips.
+// chosen. The Over shares them all but Exposure, which was set on Resolume's
+// demo clips (DefaultOf, below).
 //---------------------------------------------------------------------------
 const ControlInfo kTable[] = {
 	standard( PT_DIAMETER, "Diameter", "Ball", ParamFromDiameter( 0.5 ) ),
@@ -105,6 +105,19 @@ static_assert( sizeof( kTable ) / sizeof( kTable[ 0 ] ) == PT_ABOUT_TEXT, "every
 const ControlInfo& InfoOf( unsigned int id )
 {
 	return kTable[ std::min< unsigned int >( id, PT_ABOUT_TEXT - 1 ) ];
+}
+
+//The Over's Exposure: the largest, in sixth-stop steps, at which the spots
+//blow out (drive to white a channel the clip had below 250) no more than 1%
+//of the spot-lit pixels of the median demo clip. tools/clips.py defaults
+//measures it and fails when this is not what the clips give.
+constexpr double kOverExposureStops = 5.0 / 6.0;
+
+float DefaultOf( unsigned int id, bool effect )
+{
+	if( effect && id == PT_EXPOSURE )
+		return ParamFromExposure( kOverExposureStops );
+	return InfoOf( id ).defaultValue;
 }
 
 const std::vector< unsigned int >& HostOrder( bool effect )

@@ -2112,13 +2112,12 @@ int runBench()
 		int w, h;
 		const char* name;
 	};
-	const Size sizes[] = { { 1280, 720, "720p" }, { 1920, 1080, "1080p" }, { 3840, 2160, "4K" } };
+	const Size sizes[] = { { 1280, 720, "720p" }, { 1920, 1080, "1080p" } };
 	struct Case
 	{
 		const char* what;
 		bool over;
 		std::function< void( Rig& ) > set;
-		bool at4K;///< 4K once, short (a shared machine: no 4K loops)
 	};
 	auto worst = []( Rig& r ) {
 		r.Set( PT_DIAMETER, ParamFromDiameter( 1.0 ) );
@@ -2127,30 +2126,27 @@ int runBench()
 		r.Set( PT_THROW, ParamFromThrow( 0.9 ) );
 	};
 	const Case cases[] = {
-		{ "source, defaults (Room)", false, []( Rig& ) {}, true },
-		{ "source, Wall", false, []( Rig& r ) { r.Set( PT_VIEW, static_cast< float >( View::Wall ) ); }, false },
-		{ "source, 103,702 facets, widest window", false, worst, false },
-		{ "Over, defaults (Surface)", true, []( Rig& ) {}, true },
-		{ "Over, Gobo", true, []( Rig& r ) { r.Set( PT_CLIP_AS, static_cast< float >( ClipAs::Gobo ) ); }, false },
-		{ "Over, 103,702 facets, widest window", true, worst, false },
+		{ "source, defaults (Room)", false, []( Rig& ) {} },
+		{ "source, Wall", false, []( Rig& r ) { r.Set( PT_VIEW, static_cast< float >( View::Wall ) ); } },
+		{ "source, 103,702 facets, widest window", false, worst },
+		{ "Over, defaults (Surface)", true, []( Rig& ) {} },
+		{ "Over, Gobo", true, []( Rig& r ) { r.Set( PT_CLIP_AS, static_cast< float >( ClipAs::Gobo ) ); } },
+		{ "Over, 103,702 facets, widest window", true, worst },
 	};
-	std::printf( "\n=== bench: GPU time per frame (GL_TIME_ELAPSED), after 240 frames of warm-up, median and worst of 120 (4K: 30 and 30, defaults only)\n" );
+	std::printf( "\n=== bench: GPU time per frame (GL_TIME_ELAPSED), after 240 frames of warm-up, median and worst of 120 (no 4K: a shared machine)\n" );
 	GLuint query = 0;
 	glGenQueries( 1, &query );
 	for( const Case& c : cases )
 		for( const Size& size : sizes )
 		{
-			const bool fourK = size.w == 3840;
-			if( fourK && !c.at4K )
-				continue;
 			Rig rig( c.over );
 			rig.bpm = 120.0;
 			if( !rig.Init( size.w, size.h ) )
 				return 1;
 			c.set( rig );
-			if( !rig.Render( fourK ? 30 : 240 ) )
+			if( !rig.Render( 240 ) )
 				return 1;
-			const int kTimed = fourK ? 30 : 120;
+			const int kTimed = 120;
 			std::vector< double > times, cpu;
 			for( int f = 0; f < kTimed; ++f )
 			{

@@ -73,6 +73,11 @@ struct ControlInfo
 
 const ControlInfo& InfoOf( unsigned int id );
 
+/// A control's default in one plugin: the table's, except the Over's
+/// Exposure, which was set from Resolume's demo clips (tools/clips.py
+/// defaults; AGENTS.md, "Decisions").
+float DefaultOf( unsigned int id, bool effect );
+
 /// Host index -> ParamId for one plugin: the source has no Clip As or Mix,
 /// the Over no View.
 const std::vector< unsigned int >& HostOrder( bool effect );
