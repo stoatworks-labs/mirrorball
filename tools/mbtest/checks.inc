@@ -1386,7 +1386,7 @@ int runMissing( const Perturb& perturb )
 			const double ratio = sumOf( gone.Output() ) / sumOf( full.Output() );
 			const double sigma = sw > 0.0 ? std::sqrt( fraction * ( 1.0 - fraction ) * sw2 ) / sw : 1.0;
 			Check( all.size() > 500 && std::fabs( ratio - ( 1.0 - fraction ) ) <= 3.0 * sigma,
-			       fmt( "%dx%d, a plane facing the lamp, 1 m ball, 5 mm facets: light kept %.4f against 0.7000 +- %.4f (3 sd of %zu facets on the wall, weighted)", r.w, r.h, ratio,
+			       fmt( "%dx%d, a plane facing the lamp, 1 m ball, 5 mm facets: light kept %.4f against 0.7000 +- %.4f (3 sd of %zu facets on the plane, weighted)", r.w, r.h, ratio,
 			            3.0 * sigma, all.size() ) );
 		}
 	}
