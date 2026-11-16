@@ -78,6 +78,11 @@ add_library(mirrorball_core OBJECT
 target_include_directories(mirrorball_core PUBLIC source)
 target_link_libraries(mirrorball_core PUBLIC ffgl::sdk)
 target_compile_definitions(mirrorball_core PUBLIC MIRRORBALL_VERSION="${PROJECT_VERSION}")
+# This repo's own code builds with -Wall -Wextra (the SDK is not ours to fix);
+# tools/verify.sh fails on any warning outside external/.
+if(NOT MSVC)
+    target_compile_options(mirrorball_core PRIVATE -Wall -Wextra)
+endif()
 set_target_properties(mirrorball_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # On Windows/Linux the SDK headers we include pull in <GL/glew.h>. The SDK links
@@ -135,6 +140,7 @@ mirrorball_add_plugin(MirrorballEffect source/EffectPlugin.cpp
 # ---------------------------------------------------------------------------
 if(MIRRORBALL_BUILD_TOOLS AND APPLE)
     add_executable(mbtest tools/mbtest/main.cpp)
+    target_compile_options(mbtest PRIVATE -Wall -Wextra)
     # zlib ships with the OS, which is why the PNG writer is fifty lines here
     # rather than a vendored dependency.
     target_link_libraries(mbtest PRIVATE mirrorball_core z
