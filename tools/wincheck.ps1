@@ -2,7 +2,7 @@
     What a host sees of a built Windows DLL, with no GL and no Resolume.
 
         tools/wincheck.ps1 -Dll build/Release/Mirrorball.dll -Name "SW Mirrorball" `
-                           -Id MR01 -Kind source -Params 23 -First "Diameter"
+                           -Id MR01 -Kind source -Params 24 -First "Diameter"
 
     It LOADS the DLL (so a missing runtime or dependency fails here, where
     dumpbin cannot see it), finds plugMain, and asks it what Resolume asks
