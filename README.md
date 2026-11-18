@@ -56,6 +56,38 @@ copper at the edges and lilac in the middle; between the spots the clip is nearl
 <sub>The Over on its defaults on the same harness, Resolume's bundled `IntoTheGlow_02` as
 the clip, its 150th frame through `--pipe` (`--over --pipe --size 1280x720 --fps 30`).</sub>
 
+<!-- downloads:start -->
+
+## Download
+
+**[v0.1.0](https://github.com/stoatworks-labs/mirrorball/releases/tag/v0.1.0)** — prebuilt for macOS and Windows. Pick your platform:
+
+<details>
+<summary><b>macOS</b> — Universal (Apple Silicon + Intel)</summary>
+
+| Build | Download | Size |
+| --- | --- | --- |
+| Universal (Apple Silicon + Intel) · .dmg disk image | [`mirrorball-0.1.0-macos-universal.dmg`](https://github.com/stoatworks-labs/mirrorball/releases/download/v0.1.0/mirrorball-0.1.0-macos-universal.dmg) | 451 KB |
+| Universal (Apple Silicon + Intel) · .zip archive | [`mirrorball-macos-universal.zip`](https://github.com/stoatworks-labs/mirrorball/releases/latest/download/mirrorball-macos-universal.zip) | 392 KB |
+
+</details>
+
+<details>
+<summary><b>Windows</b> — x64</summary>
+
+| Build | Download | Size |
+| --- | --- | --- |
+| x64 · .exe installer | [`mirrorball-0.1.0-windows-x86_64-setup.exe`](https://github.com/stoatworks-labs/mirrorball/releases/download/v0.1.0/mirrorball-0.1.0-windows-x86_64-setup.exe) | 265 KB |
+| x64 · .zip archive | [`mirrorball-windows-x86_64.zip`](https://github.com/stoatworks-labs/mirrorball/releases/latest/download/mirrorball-windows-x86_64.zip) | 246 KB |
+
+</details>
+
+All builds, checksums and release notes: [github.com/stoatworks-labs/mirrorball/releases](https://github.com/stoatworks-labs/mirrorball/releases).
+
+macOS builds are signed and notarised and open normally. The Windows builds are unsigned, so SmartScreen warns once.
+
+<!-- downloads:end -->
+
 ## The one idea
 
 **Each facet is a flat mirror. It reflects the pin spot by the law of reflection and does
