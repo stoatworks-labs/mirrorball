@@ -96,9 +96,10 @@ departs from it.
 - `mirrorball_core` is an OBJECT library: each plugin registers itself from a file-scope
   constructor nothing references.
 - The macOS build must be universal. Check with `lipo`, never the build log.
-- **Provisional hand copies:** `source/StoatworksAbout*.h` (guide = "", no user guide yet)
-  and `ATTRIBUTIONS.md`. Once the project is registered in stoatworks-backend,
-  `sync-about.py` and `sync-attributions.py` generate them.
+- **Generated, don't edit here:** `source/StoatworksAbout.h` (stoatworks-backend's
+  `sync-about.py`, from the website's projects.json: the hook and the User guide button)
+  and `ATTRIBUTIONS.md` (`sync-attributions.py`, from the backend's `derived.json`).
+  Registered 2026-11-18; the About block makes it 24 and 25 parameters.
 - **Workflows.** `.github/workflows/ci.yml` builds on macOS (arm64, `mbtest --list` and
   `--offline`, `glslc`) and on Windows (MSVC, vcpkg GLEW, then `tools/wincheck.ps1` loads
   both DLLs as a host does: name, id, type, parameter count and the first parameter's
@@ -111,8 +112,9 @@ departs from it.
   <https://github.com/stoatworks-labs/mirrorball> since 2026-11-18. Edit it in a worktree.
 
 ## Not done yet
-- Never loaded in Resolume (either platform); never built on Windows.
-- No user guide, no OpenFX port, no browser demo, no presets.
+- Never loaded in Resolume (either platform). The Windows DLLs are built and loaded by CI only.
+- No OpenFX port, no presets. The user guide is `docs/USER-GUIDE.md` (the website builds its
+  page and PDF from it); its "Flashing" section has the measured flash rates.
 
 ## Diagnostics
 

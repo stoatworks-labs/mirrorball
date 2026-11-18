@@ -2,7 +2,7 @@
 
 > **AI-assisted project.** This codebase was created with [Claude](https://claude.com/claude-code)
 > (Anthropic), directed and reviewed by a human author. It has **never been loaded into
-> Resolume**, on macOS or Windows, and has never been built on Windows. Everything below is
+> Resolume**, on macOS or Windows; its Windows DLLs are built and loaded only by CI. Everything below is
 > measured by an offline harness, `mbtest`, that drives the real plugin classes in a
 > headless GL context on a synthetic clock, on this Mac's GPU at two rasters and partly on
 > Apple's software renderer, and reads linear lux straight off the plugin's own float
@@ -16,6 +16,14 @@
 > **27** one-character mutants of the shipped GLSL and C++ are all caught. The facets'
 > layout, the pin spot's optics and its brightness are **assumptions**: see
 > [Status](#status).
+
+> **Photosensitivity note.** On their defaults neither plugin flashes. With a small ball, the
+> pin spot in close and a fast spin, the spots are big patches of light sweeping across the
+> picture and they can flash faster than **three times a second** over a third of the
+> picture, the line broadcast and web guidance draw: measured at up to 16 rises and falls in
+> a second where the line is six. Sync can turn the ball far faster than Free's 5 rpm. See
+> [Flashing](#flashing) and the user guide before you put a fast, close setting in front of
+> an audience.
 
 A mirror ball and its pin spot, for [Resolume](https://resolume.com) Arena and Avenue, as
 two FFGL plugins: **SW Mirrorball**, a source that is a turning ball in a room full of its
@@ -121,11 +129,12 @@ Mix 0 hands the clip straight back.
 
 ## Status
 
-**v0.1.0, 16 November 2026, unreleased, and early days.** It has **never been loaded into
-Resolume** on either platform and never been built on Windows. `oxbow probe` reads the
-bundles as a host does (`SW Mirrorball` / `MR01` / source, `SW Mirror Over` / `MR02` /
-effect) and `oxbow selftest` renders through each. There's no user guide yet, no OpenFX
-port and no browser demo.
+**v0.1.0, and early days.** It has **never been loaded into Resolume** on either platform.
+`oxbow probe` reads the bundles as a host does (`SW Mirrorball` / `MR01` / source,
+`SW Mirror Over` / `MR02` / effect) and `oxbow selftest` renders through each. On Windows
+both DLLs build under MSVC in CI and load as a host loads them (`tools/wincheck.ps1`: name,
+id, type, 24 and 25 parameters). The [user guide](docs/USER-GUIDE.md) is also on the
+[project page](https://stoatworks-labs.com/software/mirrorball/guide/). No OpenFX port.
 
 ### Measured offline, on macOS
 
@@ -149,7 +158,7 @@ not from a fit; AGENTS.md says where each comes from. What it establishes:
 | `--cap` | the 1 m ball of 5 mm facets with a 6° beam 0.9 m away: at most **169** candidates a pixel (the cap) where it would want 2,401, losing **0.77%** of the light (1.30% at 320×180); at the defaults at most 49 |
 | `--alpha` | Mix 0 returns the clip bit-exactly; Surface passes the clip's alpha and ignores what is under alpha 0; Gobo's alpha is mix(a, 1, Mix) exactly; Room Light 1 with no spots returns the clip to 1.2e-7; the source's alpha is 1 |
 | `--resize`, `--state` | a raster change mid-run is **0 bytes** different from an instance at the new size all along; the host's GL state comes back, both plugins |
-| `--names`, `--cues`, `--layout` | 23 and 24 parameters within FFGL's 16 characters, the About block last; a cue sheet ramps and steps them; nine balls' facet counts as the spec tabulates, no two facets overlapping |
+| `--names`, `--cues`, `--layout` | 24 and 25 parameters within FFGL's 16 characters, the About block last; a cue sheet ramps and steps them; nine balls' facet counts as the spec tabulates, no two facets overlapping |
 | `--pipe` | both plugins: 2.5 frames in, exactly 2 out; a bad cue, a bad option and a non-number refused; a closed stdout (`\| head -c 1`) exits 1, not 141 |
 | demo clips | the Over's alpha on Resolume's two DXV clips with transparency, both modes, Mix 1 and 0.5: alpha to half a code, and white painted under every transparent pixel changes **0** output bytes |
 | `--negative` | **18** deliberately wrong models, **18** caught |
@@ -176,13 +185,34 @@ own brightness. Clip As stays Surface, judged by eye on a contact sheet of four 
 under Gobo at the defaults each spot carries a disc of the clip about a quarter of its
 width, so the picture is lost in tinted dots.
 
+### Flashing
+
+Measured from the plugins' own output with xenon's flash check (a rise or fall of a tenth of
+white, counted over the whole picture and over every third-of-the-picture patch; more than six
+in a second is over the line). The defaults measure **0**, and the whole picture never went over
+in any run. With the default 50 cm ball and the lamp at 5 m nothing went over at any setting
+tried: ±5 rpm, and Sync up to 90° steps every half beat at 240 BPM with full Glide, at +4 stops,
+on the Wall view. The Over at its defaults measures 0 over all 33 of Resolume's demo clips.
+
+It goes over with a 20 cm ball, the lamp within about a metre and a fast spin, in a third of
+the picture: Free at 5 rpm with 10 mm facets, the lamp 1.1 m off and +4 stops, **10**; at
+3 rpm, 6 (on the line); at 5 rpm and 0 stops, 0. Sync with Glide 0 can only change on a step,
+so it peaks at the step rate: 90° on the half beat with 20 mm facets and the lamp 0.5 m below,
+6 at 180 BPM, **7** at 200, **8** at 240. With any Glide the ball turns between steps, far
+faster than Free can: 90° every half beat at 120 BPM is 60 rpm on average, **16** even at
+0 stops; 15° every half beat at 120 BPM, 6. The Over over the demo clips: 2 of 33 over at 5 rpm
+with the small ball at +4 stops (0 at its own +5/6), 7 of 33 with the 90°, Glide 1, 240 BPM
+setting (up to 18). The user guide's "Flashing, and keeping it safe" has the table and what
+keeps it under the line.
+
 ### Not established
 
 - **Resolume.** Never loaded, on either platform, so nothing here is known about how Arena
   sends its beat or clock to it, or how it looks or performs in a composition.
-- **Windows.** Never built.
+- **Windows.** Built and loaded by CI, never run in a host.
 - **The layout is an assumption.** No ball's sheet gives a facet count or arrangement. The
-  rings, the hashed ring offsets and the 10% grout are this project's.
+  rings, the hashed ring offsets and the 10% grout are this project's. The grout takes 17% of
+  the light, though the sheets describe their balls as gapless.
 - **The pin spot is two fixtures.** Its flux is Chauvet's LED Pinspot 2's, its lens a
   PAR36's diameter: no LED pin spot sheet gives a lens size, and the GE 4515's own
   photometry contradicts itself. The lens is uniformly bright, the gate hard, the focus at
@@ -194,6 +224,14 @@ width, so the picture is lost in tinted dots.
   walls. The room is an empty box, its albedos chosen.
 - **The cap.** With very wide, grazing spots (the biggest balls, the lamp in close) the far
   side of each spot is dropped: 0.77% of the light at the worst setting.
+
+Open questions about the defaults, each a choice a user may want the other way:
+
+- **The Over's Clip As is Surface**, not Gobo with the spot in close (where every spot would
+  carry the whole clip). Under Gobo at the defaults the clip is lost in tinted dots.
+- **Room Light 0.03 leaves the clip nearly black between the spots** in the Over.
+- **The two plugins' Exposure defaults differ**: 0 in the source, +5/6 stop in the Over, set
+  from the demo clips.
 
 ## Build
 
@@ -216,7 +254,8 @@ The last one copies `Mirrorball.bundle` and `Mirror Over.bundle` into
 `~/Documents/Resolume Arena/Extra Effects`. Restart Arena and they're under Sources as
 **SW Mirrorball** and under Effects as **SW Mirror Over**.
 
-Windows needs Visual Studio 2022 and vcpkg (for GLEW). It has never been built there.
+Windows needs Visual Studio 2022 and vcpkg (for GLEW); `.github/workflows/ci.yml` has the
+configure line (`-A x64`, the `x64-windows-static-md` triplet, `MIRRORBALL_BUILD_TOOLS=OFF`).
 
 ## Building and testing
 
