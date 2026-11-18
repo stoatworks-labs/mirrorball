@@ -112,7 +112,9 @@ departs from it.
   <https://github.com/stoatworks-labs/mirrorball> since 2026-11-18. Edit it in a worktree.
 
 ## Not done yet
-- Never loaded in Resolume (either platform). The Windows DLLs are built and loaded by CI only.
+- Run in Resolume only on one layer over a still: Arena 7.29.0 on a Mac (by REST, 2026-11-18)
+  and Arena 7.27.1 on win-lab (the fleet's Arena gate, software rendering). Never in a show;
+  Sync was seen to step in Arena, not checked against its beat there.
 - No OpenFX port, no presets. The user guide is `docs/USER-GUIDE.md` (the website builds its
   page and PDF from it); its "Flashing" section has the measured flash rates.
 

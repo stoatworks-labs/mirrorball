@@ -1,8 +1,9 @@
 # mirrorball
 
 > **AI-assisted project.** This codebase was created with [Claude](https://claude.com/claude-code)
-> (Anthropic), directed and reviewed by a human author. It has **never been loaded into
-> Resolume**, on macOS or Windows; its Windows DLLs are built and loaded only by CI. Everything below is
+> (Anthropic), directed and reviewed by a human author. It has run in Resolume only on one
+> layer over a still, in Arena 7.29.0 on a Mac and Arena 7.27.1 on Windows (software
+> rendering), and **never in a show**. Everything else below is
 > measured by an offline harness, `mbtest`, that drives the real plugin classes in a
 > headless GL context on a synthetic clock, on this Mac's GPU at two rasters and partly on
 > Apple's software renderer, and reads linear lux straight off the plugin's own float
@@ -129,12 +130,39 @@ Mix 0 hands the clip straight back.
 
 ## Status
 
-**v0.1.0, and early days.** It has **never been loaded into Resolume** on either platform.
-`oxbow probe` reads the bundles as a host does (`SW Mirrorball` / `MR01` / source,
-`SW Mirror Over` / `MR02` / effect) and `oxbow selftest` renders through each. On Windows
-both DLLs build under MSVC in CI and load as a host loads them (`tools/wincheck.ps1`: name,
-id, type, 24 and 25 parameters). The [user guide](docs/USER-GUIDE.md) is also on the
-[project page](https://stoatworks-labs.com/software/mirrorball/guide/). No OpenFX port.
+**v0.1.0, and early days.** It has run in Resolume only on one layer over a still, in Arena
+on this Mac and on Windows (below), never in a show. `oxbow probe` reads the bundles as a
+host does (`SW Mirrorball` / `MR01` / source, `SW Mirror Over` / `MR02` / effect) and
+`oxbow selftest` renders through each. On Windows both DLLs build under MSVC in CI and load
+as a host loads them (`tools/wincheck.ps1`: name, id, type, 24 and 25 parameters). The
+[user guide](docs/USER-GUIDE.md) is also on the
+[project page](https://stoatworks-labs.com/software/mirrorball/guide/), and there's a
+[browser demo](https://mirrorball-demo.stoatworks-labs.com). No OpenFX port.
+
+### In Resolume
+
+**On macOS**, in Arena 7.29.0 on an Apple Silicon Mac (macOS 26), with the release
+workflow's universal bundles signed ad hoc, mounted over Arena's REST API on one layer above
+the composition, over a still: both register (`SW Mirrorball`, MR01, a source; `SW Mirror
+Over`, MR02, an effect), with all 24 and 26 parameters shown (the Over's after Arena's own
+Opacity) and every default as declared. At the defaults the ball turns on Arena's clock; at
+Speed's middle (0 rpm) two snapshots 1.5 s apart are identical; Mix 0 is identical to the
+bare still. Throw, Gobo, Colour, Missing, Seed, Room Light, Exposure and Diameter each change
+the picture in both, as do View in the source and Clip As in the Over, and setting them all
+back gives the first picture again, identical; Motor Sync with Glide 0 steps (two snapshots
+1.6 s apart differ). One thing it showed that the guide now says: in the Over, with the lamp
+in at 0.5 m or a 1 m ball, at the default Bearing of 75° the spots miss the back wall
+entirely and the Over shows only the dark room. The light comes back toward the lamp, and
+the smaller the lit patch of ball, the tighter it gathers there; Bearing 150–180° brings it
+onto the wall.
+
+**On Windows**, in Arena 7.27.1 on win-lab (software rendering, Mesa llvmpipe, no GPU),
+with the x64 DLLs the release workflow built from this source, the fleet's Arena gate passed
+15 of 15: both load and register, list as a source and an effect with all 24 and 26
+parameters as declared (name, order, type, range and default), and render. With the ball
+held still, 15 of the source's controls and 17 of the Over's (Arena's Opacity among them)
+move the picture; Speed, Step On, Step Angle and Glide are inconclusive in both, the moving
+ball under them setting the noise floor. Arena's log is clean and it stayed up throughout.
 
 ### Measured offline, on macOS
 
@@ -207,9 +235,12 @@ keeps it under the line.
 
 ### Not established
 
-- **Resolume.** Never loaded, on either platform, so nothing here is known about how Arena
-  sends its beat or clock to it, or how it looks or performs in a composition.
-- **Windows.** Built and loaded by CI, never run in a host.
+- **Resolume in a show.** It has run in Arena only on one layer over a still, for a few
+  minutes on the Mac and half an hour on win-lab: never in a composition of several layers,
+  at 4K, on a GPU under Windows, or through a show. In Arena, Sync was seen to step, not
+  checked against the beat; the harness checks the beat against a faked SetBeatInfo. Its
+  cost was measured only offline.
+- **Windows.** Run in Arena on software rendering only.
 - **The layout is an assumption.** No ball's sheet gives a facet count or arrangement. The
   rings, the hashed ring offsets and the 10% grout are this project's. The grout takes 17% of
   the light, though the sheets describe their balls as gapless.
@@ -228,7 +259,8 @@ keeps it under the line.
 Open questions about the defaults, each a choice a user may want the other way:
 
 - **The Over's Clip As is Surface**, not Gobo with the spot in close (where every spot would
-  carry the whole clip). Under Gobo at the defaults the clip is lost in tinted dots.
+  carry the whole clip, with Bearing swung round to 150–180° so the spots reach the back wall).
+  Under Gobo at the defaults the clip is lost in tinted dots.
 - **Room Light 0.03 leaves the clip nearly black between the spots** in the Over.
 - **The two plugins' Exposure defaults differ**: 0 in the source, +5/6 stop in the Over, set
   from the demo clips.

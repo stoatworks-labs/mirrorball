@@ -42,8 +42,10 @@ left wall is the pin spot's own light passing the ball, with the ball's shadow i
 > CPU and the GPU, spot for spot; and Sync steps start on the host's beat to 3.4 × 10⁻⁸ s.
 > Eighteen models that are wrong on purpose and twenty-seven one-character changes to the shipped
 > code are all caught, and every control that has pixels changes the picture.
-> It has **never been loaded into Resolume**, on macOS or Windows. Both Windows DLLs build under
-> MSVC and load as a host loads them, with their names, ids, types and parameters as declared.
+> In Resolume it has run only on one layer over a still: in Arena 7.29.0 on a Mac, and in Arena
+> 7.27.1 on Windows on software rendering. There both plugins register, show their controls with
+> the declared defaults and render, and every control the checks could move changes the picture.
+> It has **never been in a show**.
 > The facets' layout, the pin spot's lens and its brightness are assumptions (see [Known
 > limits](#known-limits)). Try it on a spare layer before you put it in a show.
 >
@@ -116,7 +118,9 @@ lamp's own light passing the ball, with the ball's shadow in it.
 5 m. Far from the lamp each facet sees only part of the gobo, about a quarter of its width at the
 defaults, centred on where that facet sits in the beam: your clip arrives in mirrored pieces
 scattered over the wall. Bring Throw down to under about 1.3 m and every spot carries the whole
-clip.
+clip, but the spots then gather round the lamp, and at the default Bearing of 75° they miss the
+back wall: the Over shows only the dark room. Swing Bearing round to **150–180°**, so the lamp is
+behind the ball, and they land on the wall the Over shows.
 
 **Spots on the beat.** Motor **Sync**, Step On **Beat**, Step Angle **15°**, Glide **0.5**: the
 ball turns 15° on each beat, gliding there over the first half of the beat. Glide **0** jumps;
@@ -339,6 +343,14 @@ Exposure down to see the gobo in them.
 **My clip isn't in the spots.** Clip As is Surface by default: the clip is the wall. Set Clip As
 to Gobo, and bring Throw down to see the whole clip in each spot.
 
+**SW Mirror Over shows no spots at all.** They're landing somewhere other than the back wall,
+which is all the Over shows. The light comes back from the ball toward the lamp, and the smaller
+the patch of ball the beam lights (the lamp in close, a narrow beam, a big ball), the tighter the
+spots gather round it. At the default Bearing of 75° the lamp is off to the right, so with Throw
+under about 1.3 m, or Diameter at 1 m, the back wall goes dark. Swing Bearing round to 150–180°
+(the lamp behind the ball); for a big ball, widening Beam to 12° also brings them back. SW
+Mirrorball's Room view shows where they went.
+
 **The spots look like smudges, not squares.** The lamp is far and the beam narrow, so each facet
 sees only the lens and the spot is a window onto the gobo; with an Open gobo that's a soft round
 patch. That's how a real pin spot on a mirror ball looks.
@@ -358,11 +370,16 @@ Windows  %LOCALAPPDATA%\mirrorball\logs\mirrorball.YYYY-MM-DD.log
 
 ## Known limits
 
-- **Never loaded into Resolume**, on macOS or Windows: nothing is known yet about how it looks in
-  a composition, how Arena's beat drives Sync, or how it performs there.
+- **Run in Resolume only briefly**, on one layer over a still, in Arena 7.29.0 on a Mac and
+  7.27.1 on Windows (software rendering): nothing is known yet about a whole show, whether Sync's
+  steps land on Arena's beat (in Arena they were only seen to step), or how it performs there.
 - **SW Mirror Over's default Clip As is Surface**, not Gobo. Under Gobo at the defaults each spot
   carries a disc of your clip about a quarter of its width, so the picture is lost in tinted dots;
-  with the lamp in close every spot carries the whole clip. Which should be the default is open.
+  with the lamp in close (and Bearing swung round to 150–180° so the spots reach the back wall)
+  every spot carries the whole clip. Which should be the default is open.
+- **SW Mirror Over shows only the back wall.** With the lamp in close or a big ball, at the default
+  Bearing the spots land elsewhere and it shows only the dark room (see "SW Mirror Over shows no
+  spots at all" above).
 - **Room Light 0.03 leaves your clip nearly black between the spots** in SW Mirror Over. That's
   a dark hall; raise it if you want the clip to read.
 - **The two plugins' Exposure defaults differ**: 0 in SW Mirrorball, +5/6 stop in SW Mirror Over,
