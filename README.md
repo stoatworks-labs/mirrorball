@@ -198,7 +198,7 @@ width, so the picture is lost in tinted dots.
 ## Build
 
 macOS (universal: Apple Silicon and Intel), from a checkout with its submodule
-(`git submodule update --init --recursive`; the repository is local, with no remote yet):
+(`git submodule update --init --recursive`):
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release

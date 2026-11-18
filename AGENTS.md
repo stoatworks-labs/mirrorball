@@ -2,7 +2,8 @@
 
 Why the code is the way it is. `CLAUDE.md` is the command reference; the design is
 `~/Projects/resolume/specs/SPEC-mirrorball.md`, whose "As built" section lists where this
-repo departs from it. Built 2026-11-16 from the spec, in one session, local only.
+repo departs from it. Built 2026-11-16 from the spec, in one session, in `~/dev`; moved
+into the fleet and made public on 2026-11-18.
 
 ## The idea
 
@@ -92,7 +93,9 @@ where each is dim; far spots racing; holes that turn with the ball; the spill's 
   integrates the rays over the pupil (100 × 100, in double) for the prediction, and
   allows how far the facet's own size moves it. 5 rpm covers a quarter turn in 3 s.
 - **The bench renders no 4K**: the machine is shared (load near 20 at times today).
-- **No GitHub workflows**, and no `.github/`.
+- **The workflows are haze's** (`ci.yml`, `release.yml`), added 2026-11-18 when the repo
+  went public, with pinhole's `tools/wincheck.ps1` (it takes the first parameter's name)
+  and stoatworks-backend's current `scripts/release-lib.sh` (`rl_nsis --ffgl`).
 
 ## The traps actually hit
 

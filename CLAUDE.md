@@ -99,9 +99,16 @@ departs from it.
 - **Provisional hand copies:** `source/StoatworksAbout*.h` (guide = "", no user guide yet)
   and `ATTRIBUTIONS.md`. Once the project is registered in stoatworks-backend,
   `sync-about.py` and `sync-attributions.py` generate them.
-- **No workflows.** There's no `.github/`. If the repo goes to GitHub as a private repo,
-  build and release locally (the fleet's Actions quota).
-- Local only: `~/dev/mirrorball`, no remote, nothing released, not on the website.
+- **Workflows.** `.github/workflows/ci.yml` builds on macOS (arm64, `mbtest --list` and
+  `--offline`, `glslc`) and on Windows (MSVC, vcpkg GLEW, then `tools/wincheck.ps1` loads
+  both DLLs as a host does: name, id, type, parameter count and the first parameter's
+  name). `release.yml` builds the universal bundles and the x64 DLLs, zips, a dmg and an
+  NSIS installer (`--ffgl`, per user into Extra Effects), and publishes only on a `v*` tag;
+  a `workflow_dispatch` run builds without publishing. Both are haze's, adapted. The
+  repo is public, so Actions minutes are free; `-Params` in both changes whenever a
+  control or the About block does.
+- Fleet repo: `~/Projects/resolume/mirrorball`, public at
+  <https://github.com/stoatworks-labs/mirrorball> since 2026-11-18. Edit it in a worktree.
 
 ## Not done yet
 - Never loaded in Resolume (either platform); never built on Windows.
