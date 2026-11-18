@@ -294,6 +294,118 @@ visit 2,401). An earlier verify run the same hour gave the source's defaults 0.6
 720p (worst 2.79, one frame) and the cap's worst case up to 6% less: the machine is shared.
 One GPU only; a small GPU or the software renderer is another matter.
 
+## The browser demo (2026-11-18)
+
+https://mirrorball-demo.stoatworks-labs.com/, from `demo/`, deployed by `wrangler.toml` (a
+Worker route: the zone is at Cloudflare's 100 custom domains, so `mirrorball-demo` is a
+proxied AAAA `100::` record made through the API) and `.github/workflows/deploy.yml` on every
+push to main. Both plugins on one page: the Plugin dropdown is a new instance of either
+constructor, `?plugin=over` opens the effect.
+
+- **It runs the plugin, it doesn't port it.** `demo/mirrorball-core.wasm` is `Mirrorball.cpp`
+  and everything it calls (Motor, Ball, Controls, PassBuffer, Shaders, Diag) plus the FFGL
+  SDK's plugin classes, FFGLShader, FFGLFBO and the screen quad, compiled unmodified by
+  emscripten (`demo/tools/build-wasm.sh`, pinhole's pattern). The motor, the ring layout, the
+  room and the lamp's place are that C++ in double; a port would have had only a reader to
+  check it. Left out: the two registration files (`SourcePlugin.cpp`, `EffectPlugin.cpp`).
+  The script fails if a `source/*.cpp` it doesn't list appears.
+- **What is the page's**: `demo/wasm/glue.cpp` plays the host (constructs either plugin,
+  reads its declarations back through the SDK so the panel is built from them, forwards
+  SetFloatParameter, SetTime, SetBeatInfo and ProcessOpenGL as mbtest's rig does, and hands
+  the page the plugin's own read-outs: phase, unwrapped turns, Sync steps, the plugin's clock,
+  facets and rings, the throw in use); `demo/wasm/gl_shim.cpp` takes four GL calls
+  (glShaderSource, refusing any text that isn't byte for byte the page's assembly of
+  `demo/shaders.js`, then the kit's `port()`; glEnable/glDisable/glIsEnabled, for
+  GL_PROGRAM_POINT_SIZE, which WebGL2 lacks and the plugin saves and restores); the host row
+  (the tempo Sync steps on, 60–174 BPM, the page's, said so on the page); the read-outs'
+  units, the tooltips, the Seed number field, the line under the picture, Diag's log shown
+  from emscripten's memory file system (`MIRRORBALL_LOG_DIR=/mirrorball/logs`), and the ten
+  presets (written in metres, degrees and rpm, converted by the plugin's own inverse
+  functions through `mb_param_from`). The About block is off the panel.
+- **The clock, and two things the page had to do about the plugin's.** The page sends
+  seconds from frame deltas (capped at 0.1 s a frame). (1) Until four frames agree on seconds
+  or milliseconds, the plugin turns the ball on the wall clock, so a host whose time stands
+  still (a paused page) still sees it turn. The page primes every new instance with five
+  frames about a millisecond apart before the first one shown; 40 control moves on a paused
+  page then left the phase unchanged. (2) Sync moves are keyed to absolute host time, so a
+  clock sent backwards leaves a move in flight hanging until time comes round again. Restart
+  is therefore a new instance at the panel's settings, never the clock rewound. Both are the
+  plugin's own rules, not bugs found in it; neither matters to a host whose time always
+  advances, and whether Arena's ever steps back is not known.
+- **A photosensitivity gate.** The guide measured flashing (over three a second in the worst
+  third of the picture) only with a small ball, the lamp in close and a fast turn. The page
+  opens on the defaults; no preset is in that region (checked at load for both plugins at
+  every tempo the host row offers, and the page throws if one is); a link with the ball 0.3 m
+  or smaller, Throw 1.5 m or nearer and either over 3 rpm in Free or, in Sync, any Glide or
+  more than six steps a second opens paused with a caution line. The warning
+  (`#photosensitivity`) is at the top, from the guide's figures. No plugin default was
+  changed. Embed mode (`?embed=1`) shows neither the warning nor applies the rule.
+- **Checked by `tools/verify.sh`** (`demo/tools/check_shaders.py`): every GLSL piece
+  character for character, the order AssembleVertex()/Assemble() join them and InitGL's
+  stage table; every uniform each pass declares set by the setter its GLSL type takes and
+  nothing undeclared set (gobo 5, final 46: WebGL2 drops a wrong setter without an error),
+  types read from the plugin's `uniform()` overloads and the declarations of what it passes;
+  and the hashes of every input the .wasm was built from (`demo/wasm/inputs.sha256`, 37
+  files). A float made int, an int made float, a missing sampler, a glUniform1ui made 1i and a
+  double passed each failed it. Any change under `source/` needs `demo/tools/build-wasm.sh`
+  rerun and its outputs committed.
+- **Compared with mbtest, once (2026-11-18), by `demo/tools/crosscheck.py`** (in the repo;
+  nothing runs it by itself: it needs Chrome, cdpshot and a built mbtest). Headless Chrome on
+  the real GPU (ANGLE on Metal), Speed 0 rpm from the first frame (the phase is 0 on both
+  sides whatever either clock does), the page paused; for the Over, Mix 0 makes the final
+  pass hand the clip back untouched, so the canvas read then is the exact input frame; that
+  frame goes to `mbtest --pipe` at the same raster with the same host values (as the page's
+  `hostValue()` sends them). Apple M4 Max, page through ANGLE/Metal against mbtest through
+  Apple's OpenGL, 640×360 (691,200 colour values a case):
+
+  | case | clip | colour values off | max |
+  | --- | --- | --- | --- |
+  | source, defaults | | 9 | 1 code |
+  | source, View Wall | | 3 | 1 code |
+  | source, star: 20 cm ball, lamp 0.5 m, amber | | 1 | 1 code |
+  | source, worn: 60% missing, Seed 7 | | 3 | 1 code |
+  | source, Dots, lamp 1 m behind the ball | | 0 | 0 |
+  | source, big amber hall | | 5 | 1 code |
+  | Over, defaults | scene | 0 | 0 |
+  | Over, Clip As Gobo, lamp 1 m behind | bars | 0 | 0 |
+  | Over, Mix 50%, Bars gobo, Blue | grid | 16 | 1 code |
+
+  Alpha identical in every case. The negative control (mbtest with Diameter one slider step,
+  0.001, off) puts 122,454 values off on the defaults case, up to 222 codes, so the
+  comparison sees a step the panel can make. Motor and Sync are not in it (the picture, not
+  the clock).
+- **Also checked on the page** (CDP, the real GPU, a stepped clock and the real one): the
+  defaults read back as the plugin's (0.50 m, 10.0 mm, 0%, Seed 1, Free, +1.00 rpm, On Beat,
+  15°, Glide 0.50, 5.0°, 5.00 m, +10°, +75°, Open, White, 12.0 m, Room, 3.0%, Exposure 0.00;
+  the Over's +0.83 stops, Surface, 100%) and 6,452 facets in 70 rings, as the guide says;
+  Throw, View, Seed, Clip As and Mix each change the picture; Defaults gives the first frame
+  back exactly; Sync steps 4 times in 2 s at 120 BPM and twice at 60; Play turns 30° a second
+  at 5 rpm; all ten presets render in both plugins with no GL error; the rows each plugin
+  lacks are hidden; the gate opens region links paused and the defaults playing; embed mode;
+  no horizontal scroll at 375 px; no console errors. It also runs on SwiftShader (Playwright's
+  headless shell), which is what the deploy's smoke check uses.
+- **Every gap, as the page discloses it** (banner, the "does not reproduce" list): it runs
+  the plugin, not a port, and the panel's units, tooltips and presets are the page's; no
+  audio, and none missing (Mirrorball has no audio input); the tempo and bar phase are the
+  page's; the clock is the page's, primed and with Restart a new instance; a frame is a
+  display refresh; GL is emscripten's WebGL2 with four shimmed entry points and the kit's GLSL
+  port, GL_PROGRAM_POINT_SIZE reading as off; the RGBA16F gobo and RGBA32F ring table need
+  EXT_color_buffer_float (refused without it); WebAssembly has no fused multiply-add and
+  musl's libm; the Over's clip is the kit's and premultiplied, so the kit's alpha clip is
+  left out; Seed is a number field and the About block is off the panel; the warning, caution
+  line and open-paused rule are the page's; the crosscheck ran once, on one GPU; nothing is
+  measured, and the plugin has never been in Resolume.
+- **Traps hit**: a paused kit draws only on request and the canvas has no
+  `preserveDrawingBuffer`, so read it in the same task as the redraw, or force the attribute
+  from outside with `Page.addScriptToEvaluateOnNewDocument` and a `getContext` override;
+  `check_shaders.py` has to infer each `uniform()` argument's type from the plugin's own
+  declarations (a two-float call is typed by its arity, since a double argument converts);
+  preset 10 as first written (Clip As Gobo, the lamp 1 m in front at 8°) rendered flat grey,
+  because the lit patch reflects away from the back wall, so presets 6 and 10 put the lamp
+  behind the ball (Bearing 150°, Beam 12°); only the files that include the SDK get
+  `-D__linux__=1` (its FFGLPlatform.h stops on a platform it doesn't know; told Linux, it
+  includes `<GL/glew.h>`, which emscripten provides).
+
 ## Open questions
 
 - **Clip As: Surface or Gobo?** Gobo is the idea in the brief ("the clip as the spot's

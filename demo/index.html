@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mirrorball — browser demo | Stoatworks Labs</title>
+    <meta name="description" content="Try the Mirrorball FFGL source and effect for Resolume in your browser: a mirror ball turning in a dark hall full of its spots, and an effect that lands the same spots on your clip or makes your clip the pin spot's gobo. Nothing is drawn as a spot: every facet is a flat mirror reflecting one narrow pin spot by the law of reflection. The plugin's own C++ compiled unmodified to WebAssembly, drawing with its own GLSL in WebGL2. A demo, not the plugin." />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./vendor/kit.css" />
+    <link rel="stylesheet" href="./mirrorball.css" />
+    <link rel="canonical" href="https://mirrorball-demo.stoatworks-labs.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Stoatworks Labs" />
+    <meta property="og:title" content="Mirrorball — browser demo | Stoatworks Labs" />
+    <meta property="og:description" content="Try the Mirrorball FFGL source and effect for Resolume in your browser: a mirror ball turning in a dark hall full of its spots, and an effect that lands the same spots on your clip or makes your clip the pin spot's gobo. Nothing is drawn as a spot: every facet is a flat mirror reflecting one narrow pin spot by the law of reflection. The plugin's own C++ compiled unmodified to WebAssembly, drawing with its own GLSL in WebGL2. A demo, not the plugin." />
+    <meta property="og:url" content="https://mirrorball-demo.stoatworks-labs.com/" />
+    <meta property="og:image" content="https://stoatworks-labs.com/thumbs/mirrorball.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="720" />
+    <meta property="og:image:alt" content="Mirrorball" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <section class="mb-warning" id="photosensitivity" aria-labelledby="mb-warning-title">
+      <h2 class="mb-warning__title" id="mb-warning-title">Photosensitivity warning</h2>
+      <p>
+        <strong>On their defaults neither plugin flashes</strong>, and with the default 50 cm ball
+        and the lamp at 5 m nothing went over the line at any setting tried. They can flash when
+        the spots are few, big and fast: a small ball (20 cm) with the pin spot in close (about a
+        metre or nearer), turning fast. Flashing light can trigger seizures in people with
+        photosensitive epilepsy.
+      </p>
+      <p>
+        Broadcast and web guidance (Ofcom's, and WCAG's) puts the line at three flashes in any
+        second, six rises and falls in brightness. Measured from the plugin's own output, the worst
+        third of the picture went over it with that small ball and close lamp at 5 rpm in Free (10
+        rises and falls at +4 stops), in Sync with no Glide above six steps a second (8 for 90°
+        every half beat at 240 BPM), and in Sync with any Glide, which turns the ball far faster
+        than Free's 5 rpm (16 for 90° every half beat at 120 BPM).
+      </p>
+      <p>
+        The page opens on the defaults, and no preset is in that region. A link that opens with the
+        ball 0.3 m or smaller, Throw 1.5 m or nearer and the ball turning fast (over 3 rpm in Free;
+        in Sync, any Glide or more than six steps a second) opens paused.
+        <strong>Pause</strong>, under the picture, stops it at once.
+      </p>
+    </section>
+
+    <main id="demo">
+      <noscript>
+        <h1>Mirrorball</h1>
+        <p>
+          An FFGL source that's a mirror ball turning in a dark hall full of its spots, and an
+          effect that lands the same spots on your clip or makes your clip the pin spot's gobo.
+          Nothing is drawn as a spot. Every facet is a flat mirror reflecting one narrow pin spot
+          by the law of reflection, and for each pixel of the room the plugin traces the light
+          back through the few facets that could send it, to the lamp's lens and its gate. So
+          spots stretch where they land at a slant, crowd and dim behind the ball, crawl near the
+          axis and race toward the horizon, carry a mirrored piece of the gobo with the lamp far
+          off and a whole one with it in close, and a missing facet is a hole that turns with the
+          ball.
+        </p>
+        <p>
+          This demo runs the plugin's own C++, compiled to WebAssembly, and its shaders in your
+          browser, so it needs JavaScript and WebGL2.
+        </p>
+        <p>
+          The plugin itself, its downloads and its user guide are on
+          <a href="https://stoatworks-labs.com/software/mirrorball/">its project page</a>.
+        </p>
+        <ul>
+          <li><a href="https://stoatworks-labs.com/software/mirrorball/">Project page and downloads</a></li>
+          <li><a href="https://stoatworks-labs.com/software/mirrorball/guide/">User guide</a></li>
+          <li><a href="https://github.com/stoatworks-labs/mirrorball">Source on GitHub</a></li>
+        </ul>
+      </noscript>
+    </main>
+
+    <script type="module" src="./plugin.js"></script>
+    <script
+      src="./vendor/support-footer.js"
+      defer
+      data-app="Mirrorball"
+      data-repo="https://github.com/stoatworks-labs/mirrorball"
+      data-note="A browser demo of the plugin's own C++ and shaders, compiled to WebAssembly and WebGL2. Nothing you load here leaves your machine."
+    ></script>
+  </body>
+</html>

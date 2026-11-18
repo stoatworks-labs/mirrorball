@@ -116,6 +116,25 @@ departs from it.
 - No OpenFX port, no presets. The user guide is `docs/USER-GUIDE.md` (the website builds its
   page and PDF from it); its "Flashing" section has the measured flash rates.
 
+## Browser demo
+- `demo/` is served at https://mirrorball-demo.stoatworks-labs.com/ by the Worker in
+  `wrangler.toml` (a route, plus a proxied AAAA `100::` record for `mirrorball-demo`: delete
+  the record and the page goes dark while deploys stay green). `.github/workflows/deploy.yml`
+  redeploys it on every push to main; by hand: `cf-run npx wrangler deploy`.
+- **`demo/mirrorball-core.{js,wasm}` is the plugin's C++, compiled and committed.** After ANY
+  change under `source/` (the generated `StoatworksAbout*.h` included), run
+  `demo/tools/build-wasm.sh` (emscripten's `em++`) and commit both outputs (mode 644) and
+  `demo/wasm/inputs.sha256`; `tools/verify.sh` fails until you do.
+- `demo/shaders.js` is a copy: after changing a shader, `python3 demo/tools/check_shaders.py
+  --write`. The same script checks every uniform's setter against its GLSL type and the
+  .wasm's input hashes.
+- The page has a photosensitivity gate (the warning at the top, links in the guide's flashing
+  region open paused, presets checked against it at load). Never change a plugin default for
+  it; if the guide's "Flashing" figures change, change `flashRegion()` in `demo/plugin.js`.
+- Serve locally: `cd demo && python3 -m http.server 8000`. Against mbtest:
+  `python3 demo/tools/crosscheck.py --mbtest build/mbtest` (Chrome on the real GPU).
+- `demo/vendor/` is the shared kit (`stoatworks-backend/resolume-demo`); never edit it.
+
 ## Diagnostics
 
 `source/Diag.{h,cpp}`: log file only, no crash handler (this runs inside Resolume).

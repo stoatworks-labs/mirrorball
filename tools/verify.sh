@@ -55,10 +55,10 @@ reserved_words || fail "a GLSL reserved word is used as an identifier"
 #---------------------------------------------------------------------------
 step "GLSL: nothing WebGL2 lacks"
 #---------------------------------------------------------------------------
-# The fleet's browser demos run the shaders unedited in WebGL2 (GLSL ES 3.00).
-# Mirrorball has no demo; the rule is kept so one can be made without
-# rewriting a shader. These built-ins arrived in GLSL 4.00 / ES 3.10 and
-# compile everywhere here but there.
+# The fleet's browser demos run the shaders unedited in WebGL2 (GLSL ES 3.00),
+# and so does Mirrorball's (demo/, mirrorball-demo.stoatworks-labs.com). These
+# built-ins arrived in GLSL 4.00 / ES 3.10 and compile everywhere here but
+# there.
 if command grep -nE '(^|[^A-Za-z_])(findMSB|findLSB|bitCount|bitfieldExtract|bitfieldInsert|bitfieldReverse|uaddCarry|usubBorrow|umulExtended|imulExtended|frexp|ldexp|fma|textureGather|textureQueryLevels|packUnorm4x8|unpackUnorm4x8)[[:space:]]*\(' source/Shaders.cpp | command grep -vE '^[0-9]+:[[:space:]]*//' ; then
 	fail "a built-in GLSL ES 3.00 does not have is in the GLSL"
 fi
@@ -68,6 +68,21 @@ echo "   none"
 step "Shaders"
 #---------------------------------------------------------------------------
 tools/glslc.sh || fail "a shader does not compile"
+
+#---------------------------------------------------------------------------
+step "Demo: the browser copy of the shaders, and the .wasm's sources"
+#---------------------------------------------------------------------------
+# demo/ runs the plugin's own C++ as committed WebAssembly and carries its own
+# copy of the GLSL; both drift quietly. This compares the GLSL character for
+# character (and the order the plugin joins it in), checks every uniform each
+# pass declares is set by the setter its type takes (WebGL2 drops a wrong one
+# silently), and checks the .wasm's recorded inputs still hash as they did
+# when demo/tools/build-wasm.sh built it (rebuilding needs emscripten).
+if [[ -f demo/tools/check_shaders.py ]]; then
+	python3 demo/tools/check_shaders.py || fail "the demo's copies have drifted from the plugin's"
+else
+	echo "   skipped: no demo/"
+fi
 
 #---------------------------------------------------------------------------
 step "Submodule"
