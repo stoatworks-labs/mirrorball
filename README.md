@@ -88,6 +88,15 @@ macOS builds are signed and notarised and open normally. The Windows builds are 
 
 <!-- downloads:end -->
 
+## Video
+
+> **Photosensitivity warning:** the video shows a turning mirror ball and its spots of light. On
+> their defaults neither plugin flashes, but some settings can (a small ball with the pin spot in
+> close, spinning fast); the video doesn't use them. Large-area flashes in it are kept to three a
+> second or fewer.
+
+[![Mirrorball: a mirror ball and its pin spot, for Resolume](docs/video-thumb.png)](https://www.youtube.com/watch?v=VTNIp_e8Z88)
+
 ## The one idea
 
 **Each facet is a flat mirror. It reflects the pin spot by the law of reflection and does
